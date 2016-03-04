@@ -174,7 +174,15 @@ public class World extends Application implements deathWatcher {
 
 	private void handleInput(Scene scene) {
 
+		floor.setOnMouseExited((MouseEvent me) -> {
+			handleInput(scene);
+		});
+		
 		for (Robot robot : robots) {
+			
+			robot.setOnMouseEntered((MouseEvent me) -> {
+				System.out.println("entered robot");
+			});
 			robot.setOnMousePressed((MouseEvent me) -> {
 				if (me.isShiftDown() && me.isPrimaryButtonDown()) {
 					if (!commandListeners.contains(robot)) {
@@ -195,6 +203,12 @@ public class World extends Application implements deathWatcher {
 						listener.isSelected();
 					}
 					System.out.println("robot added");
+				} else if (me.isSecondaryButtonDown()) {
+					if (!commandListeners.isEmpty()){
+						for(CommandListener listener : commandListeners){
+							listener.move(robot.getTranslateX(), robot.getTranslateZ(), allNodes);
+						}
+					}
 				}
 			});
 		}
