@@ -70,21 +70,18 @@ public class World extends Application implements deathWatcher {
 	private ArrayList<CommandListener> commandListeners;
 	private Random rand = new Random();
 	private BorderPane pane;
+	private Stage primaryStage;
+	private SubScene subScene;
 
 	@Override
 	public void start(Stage primaryStage) throws Exception {
+		System.out.println("hi");
 		allNodes = new ArrayList<Node>();
 		root.getChildren().add(world);
 		root.setDepthTest(DepthTest.ENABLE);
 		buildCamera();
 		buildFloor();
-		SubScene subScene = new SubScene(root, 1820, 980, true, SceneAntialiasing.BALANCED);
-
-		pane = new BorderPane();
-		pane.setCenter(subScene);
-
-		makeButtonBar();
-
+		subScene = new SubScene(root, 1920, 880, true, SceneAntialiasing.BALANCED);
 		green = new PhongMaterial();
 		green.setDiffuseColor(Color.GREEN);
 		green.setSpecularColor(Color.RED);
@@ -99,28 +96,65 @@ public class World extends Application implements deathWatcher {
 		commandListeners = new ArrayList<CommandListener>();
 		buildings = new ArrayList<Actor>();
 
-		Scene scene = new Scene(pane);
-		scene.setFill(Color.GREY);
 		primaryStage.setTitle("Robotic Combat");
-		primaryStage.setScene(scene);
+		primaryStage.setScene(sceneBuilder(null));
 		primaryStage.getIcons().add(new Image("file:src/resources/robotIcon.png"));
 		primaryStage.show();
+		primaryStage.centerOnScreen();
 		subScene.setCamera(camera);
 
 		// makeCommandCenter(red, 1);
 
 		world.getChildren().addAll(allNodes);
-		handleInput(scene);
 
 		makeCommandCenter(red, 1);
 		makeCommandCenter(blue, 2);
-		exampleListener example = new exampleListener();
-		// EventHandler handler = new EventHandler<InputEvent>() {
-		// public void handle(InputEvent event) {
-		// System.out.println("Handling event " + event.getEventType());
-		// event.consume();
-		// }
-		// };
+		this.primaryStage = primaryStage;
+		
+	}
+
+	public Scene sceneBuilder(Actor a) {
+		paneBuilder(a);
+		System.out.println("test1");
+			System.out.println("tester false");
+			Scene scene = new Scene(pane);
+			System.out.println("test2");
+			scene.setFill(Color.GREY);
+			System.out.println("test3");
+			handleInput(scene);
+			System.out.println("test4");
+			return scene;
+
+	}
+
+	private BorderPane paneBuilder(Actor a) {
+		pane = new BorderPane();
+		pane.setCenter(subScene);
+		if (a != null) {
+			Button buttonMakeT1 = new Button("Make Normal Bot");
+			buttonMakeT1.setOnAction(e -> {
+				makeRobot(red, 1);
+			});
+			Button buttonMakeT2 = new Button("Make Normal Bot");
+			buttonMakeT2.setOnAction(e -> {
+				makeRobot(blue, 2);
+			});
+			if (a.getTeam() == 1) {
+				ToolBar toolBar = new ToolBar(buttonMakeT1);
+				toolBar.setOrientation(Orientation.HORIZONTAL);
+				pane.setBottom(toolBar);
+				pane.setPrefSize(300, 300);
+
+			} else if (a.getTeam() == 2) {
+				System.out.println("inside team 2");
+				ToolBar toolBar = new ToolBar(buttonMakeT2);
+				toolBar.setOrientation(Orientation.HORIZONTAL);
+				pane.setBottom(toolBar);
+				pane.setPrefSize(300, 300);
+
+			}
+		}
+		return pane;
 	}
 
 	private class myCustomEventHanlder implements EventHandler<InputEvent> {
@@ -128,43 +162,6 @@ public class World extends Application implements deathWatcher {
 			System.out.println("Handling event " + event.getEventType());
 			event.consume();
 		}
-	}
-
-	private void makeButtonBar() {
-
-		// ToolBar toolBar = null;
-		Button buttonMakeT1 = new Button("Make Team 1 Bot");
-		buttonMakeT1.setOnAction(e -> {
-			makeRobot(red, 1);
-		});
-		Button buttonMakeT2 = new Button("Make Team 2 Bot");
-		buttonMakeT2.setOnAction(e -> {
-			makeRobot(blue, 2);
-		});
-		Button buttonMakeT3 = new Button("Make both");
-		buttonMakeT3.addEventHandler(InputEvent.ANY, new myCustomEventHanlder());
-		// case 1:
-		ToolBar toolBar = new ToolBar(buttonMakeT1, buttonMakeT2, buttonMakeT3);
-		toolBar.setOrientation(Orientation.HORIZONTAL);
-		// break;
-		// case 2:
-		// toolBar = new ToolBar(buttonMakeT1, buttonMakeT2);
-		// toolBar.setOrientation(Orientation.HORIZONTAL);
-		// break;
-		// switch (a.getTeam()) {
-		// case 1:
-		// toolBar = new ToolBar(buttonMakeT1, buttonMakeT2);
-		// toolBar.setOrientation(Orientation.HORIZONTAL);
-		// break;
-		// case 2:
-		// toolBar = new ToolBar(buttonMakeT1, buttonMakeT2);
-		// toolBar.setOrientation(Orientation.HORIZONTAL);
-		// break;
-		// }
-
-		pane.setBottom(toolBar);
-		pane.setPrefSize(300, 300);
-
 	}
 
 	public void makeCommandCenter(PhongMaterial mat, int team) {
@@ -191,8 +188,13 @@ public class World extends Application implements deathWatcher {
 
 	public void makeRobot(PhongMaterial mat, int team) {
 		robots.add(new Robot(mat, team, this));
-		robots.get(robots.size() - 1).setTranslateX(rand.nextInt(500));
-		robots.get(robots.size() - 1).setTranslateZ(rand.nextInt(500));
+		for(Actor building : buildings){
+			if(building.getTeam() == robots.get(robots.size() - 1).getTeam()){
+				robots.get(robots.size() - 1).setTranslateX(building.getTranslateX() + rand.nextInt(200)+70);
+				robots.get(robots.size() - 1).setTranslateZ(building.getTranslateZ() + rand.nextInt(200)+70);
+			}
+		}
+		
 		robots.get(robots.size() - 1).setRotateY(rand.nextInt(361));
 		allNodes.add(robots.get(robots.size() - 1));
 		pane.getChildren().removeAll(allNodes);
@@ -242,29 +244,23 @@ public class World extends Application implements deathWatcher {
 				if (me.isShiftDown() && me.isPrimaryButtonDown()) {
 
 				} else if (me.isPrimaryButtonDown()) {
-					// makeButtonBar(building);
 					for (CommandListener listener : commandListeners) {
 						listener.deSelected();
 					}
 					commandListeners.clear();
-					System.out.println("robots cleareed");
+					System.out.println("listeners cleared");
 					commandListeners.add(building);
 					for (CommandListener listener : commandListeners) {
 						listener.isSelected();
 					}
-					System.out.println("robot added");
-				} else if (me.isSecondaryButtonDown()) {
-					if (!commandListeners.isEmpty()) {
-						for (CommandListener listener : commandListeners) {
-							listener.move(building.getTranslateX(), building.getTranslateZ(), allNodes);
-						}
-					}
+					primaryStage.setScene(sceneBuilder(building));
 				}
 			});
 		}
 
 		for (Robot robot : robots) {
 			robot.setOnMousePressed((MouseEvent me) -> {
+				primaryStage.setScene(sceneBuilder(null));
 				if (me.isShiftDown() && me.isPrimaryButtonDown()) {
 					if (!commandListeners.contains(robot)) {
 						commandListeners.add(robot);
@@ -295,6 +291,7 @@ public class World extends Application implements deathWatcher {
 		}
 
 		floor.setOnMousePressed((MouseEvent me) -> {
+			
 			mouseOldX = me.getX();
 			mouseOldZ = me.getZ();
 			createSelectionLines();
@@ -312,6 +309,7 @@ public class World extends Application implements deathWatcher {
 
 		});
 		floor.setOnMouseReleased((MouseEvent me) -> {
+			
 			world.getChildren().removeAll(selectionLine1, selectionLine2, selectionLine3, selectionLine4);
 			mousePosX = me.getX();
 			mousePosZ = me.getZ();
@@ -336,7 +334,8 @@ public class World extends Application implements deathWatcher {
 					}
 				}
 			}
-
+			primaryStage.setScene(sceneBuilder(null));
+			handleInput(primaryStage.getScene());
 		});
 
 		floor.setOnMouseDragged((MouseEvent me) -> {
@@ -475,6 +474,5 @@ public class World extends Application implements deathWatcher {
 		}
 
 	}
-
 
 }

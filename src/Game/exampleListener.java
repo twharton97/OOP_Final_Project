@@ -3,11 +3,15 @@ package game;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class exampleListener implements ActionListener{
+import javafx.event.EventHandler;
+import javafx.scene.input.InputEvent;
 
+public class exampleListener implements EventHandler<InputEvent>{
+
+	
 	@Override
-	public void actionPerformed(ActionEvent arg0) {
-		// TODO Auto-generated method stub
+	public void handle(InputEvent event) {
+		System.out.println("TEST");
 		
 	}
 
