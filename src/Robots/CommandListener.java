@@ -1,4 +1,4 @@
-package Robots;
+package robots;
 
 import java.util.ArrayList;
 

@@ -1,11 +1,11 @@
-package Robots;
+package robots;
 
 import java.util.ArrayList;
 
-import Game.World;
-import Game.Xform;
-import Game.deathWatcher;
-import Game.killable;
+import game.World;
+import game.Xform;
+import game.deathWatcher;
+import game.killable;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
@@ -28,6 +28,7 @@ public class Robot extends Actor implements deathWatcher {
 	ArrayList<Component> components;
 	PhongMaterial PM = new PhongMaterial();
 	Cylinder selectedCircle;
+	
 	
 	
 	public Robot(PhongMaterial mat, int teamNumber, deathWatcher world){
@@ -72,8 +73,11 @@ public class Robot extends Actor implements deathWatcher {
 		selectedCircle.setMaterial(PM);
 		coloring(mat);
 		
-		setHealth();
-		setDamageRange();
+		health = 150;
+		damageRange[0] = 10;
+		damageRange[1] = 20;
+		blockChance = 15;
+		
 		
 	}
 
@@ -99,15 +103,16 @@ public class Robot extends Actor implements deathWatcher {
 	}
 
 	@Override
-	protected void setHealth() {
-		health = 150;
+	protected void setHealth(int newHealth) {
+		
+		health = newHealth;
 		
 	}
 
 	@Override
-	protected void setDamageRange() {
-		damageRange[0] = 10;
-		damageRange[1] = 20;
+	protected void setDamageRange(int[] newDamageRange) {
+		damageRange[0] = newDamageRange[0];
+		damageRange[1] = newDamageRange[1];
 		
 	}
 
@@ -125,5 +130,28 @@ public class Robot extends Actor implements deathWatcher {
 		for(deathWatcher watcher : deathWatchers){
 			watcher.somethingDied(this);
 		}
+	}
+
+	@Override
+	protected int[] getDamageRange() {
+		return damageRange;
+		
+	}
+
+	@Override
+	protected int getHealth() {
+		return health;
+		
+	}
+
+	@Override
+	protected double getBlockChance() {
+		return blockChance;
+	}
+
+	@Override
+	protected void setBlockChance(double newBlockChance) {
+		blockChance = newBlockChance;
+		
 	}
 }

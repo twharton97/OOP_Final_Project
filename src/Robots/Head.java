@@ -1,6 +1,6 @@
-package Robots;
+package robots;
 
-import Game.deathWatcher;
+import game.deathWatcher;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
 import javafx.scene.shape.Cylinder;

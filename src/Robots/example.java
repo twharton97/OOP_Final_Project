@@ -1,4 +1,4 @@
-package Robots;
+package robots;
 
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;

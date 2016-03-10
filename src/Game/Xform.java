@@ -1,4 +1,4 @@
-package Game;
+package game;
 
 /*
  * Copyright (c) 2013, 2014 Oracle and/or its affiliates.

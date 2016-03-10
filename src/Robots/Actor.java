@@ -1,11 +1,12 @@
-package Robots;
+package robots;
 
 import java.util.ArrayList;
+import java.util.Random;
 
-import Game.Xform;
-import Game.deathWatcher;
-import Game.killable;
-import Game.World;
+import game.World;
+import game.Xform;
+import game.deathWatcher;
+import game.killable;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
@@ -18,6 +19,8 @@ import javafx.util.Duration;
 public abstract class Actor extends Xform implements CommandListener, killable{
 
 	protected double speed;
+	protected int health;
+	protected double blockChance;
 	protected Timeline movementTL;
 	protected Timeline collisionTL;
 	protected Timeline combatTL;
@@ -28,10 +31,10 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 	protected int team;
 	protected boolean isMeleeCombatant = false;
 	private int rotation= 90;
-	protected int health;
 	protected int[] damageRange;
 	private int combatTick = 0;
 	protected ArrayList<deathWatcher> deathWatchers;
+	protected Random rand = new Random();
 
 	public Actor(int teamNumber, deathWatcher world) {
 		speed = 15;
@@ -147,6 +150,12 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 		}
 	}
 
+	/**
+	 * this method is used for checking to see if two colliding robots will engage in combat
+	 * @param node (node, this is the active shape)
+	 * @param otherShape (Actor, this is the shape collided with)
+	 * @return boolean is in combat == true
+	 */
 	private boolean checkForMeleeCombat(Node node, Actor otherShape) {
 //		System.out.println("this.team = " + this.team + " otherShape.team = " + otherShape.team + " collisisonDetected = " + collisionDetected);
 		if (this.team != otherShape.team && collisionDetected == true) {
@@ -170,7 +179,7 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 			collisionTL.getKeyFrames().add(collisionKey);
 			collisionTL.play();
 			collisionTL.setOnFinished(new EventHandler<ActionEvent>() {
-	
+		
 				@Override
 				public void handle(ActionEvent event) {
 					if (!(Math.abs(mouseOldX - node.getTranslateX()) < 25)
@@ -190,7 +199,7 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 //			}
 //		}
 		
-		combatTL.setCycleCount(200);
+		combatTL.setCycleCount(combatTL.INDEFINITE);
 		combatKey = new KeyFrame(Duration.seconds(.005), new EventHandler<ActionEvent>() {
 
 			@Override
@@ -198,8 +207,33 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 				node.setRotateY((rotation+=3)%360);
 				otherShape.setRotateY((rotation+=3)%360);
 				combatTick++;
-				if(combatTick % 20 == 0){
-					System.out.println("hit");
+				
+				if(combatTick % 70 == 0){
+					if(((rand.nextInt(100)+1)<=rand.nextInt((int)otherShape.getBlockChance()))){
+						System.out.println("otherShape blocked");	
+					}else{
+						otherShape.setHealth(otherShape.getHealth()-(rand.nextInt(node.getDamageRange()[1]-node.getDamageRange()[0]+1)+node.getDamageRange()[0]));
+						System.out.println("otherSHape health is now " + otherShape.getHealth());
+					}
+					if(((rand.nextInt(100)+1)<=rand.nextInt((int)node.getBlockChance()))){
+						System.out.println("node blocked");
+					}else{
+						node.setHealth(node.getHealth()-(rand.nextInt(otherShape.getDamageRange()[1]-otherShape.getDamageRange()[0]+1)+otherShape.getDamageRange()[0]));
+						System.out.println("Node health is now " + node.getHealth());
+					}
+					
+				}
+				
+				if(node.getHealth() <= 0){
+					combatTL.stop();
+					combatTL.getKeyFrames().removeAll(combatKey);
+					node.explode();
+				}
+				if( otherShape.getHealth() <= 0){
+					combatTL.stop();
+					combatTL.getKeyFrames().removeAll(combatKey);
+					otherShape.explode();
+					
 				}
 				
 			}
@@ -207,7 +241,7 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 		});
 		if (!combatTL.getKeyFrames().isEmpty()) {
 			combatTL.stop();
-			combatTL.getKeyFrames().remove(0);
+			combatTL.getKeyFrames().removeAll(combatKey);
 		}
 		combatTL.getKeyFrames().add(combatKey);
 		combatTL.play();
@@ -215,10 +249,7 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 			
 			@Override
 			public void handle(ActionEvent event) {
-				node.setRotateY(Math.toDegrees(Math.atan2(otherShape.getTranslateX(), otherShape.getTranslateZ())));
 				combatTick = 0;
-				node.explode();
-				otherShape.explode();
 				
 			}
 		});
@@ -232,9 +263,21 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 	@Override
 	public abstract void deSelected();
 	
-	protected abstract void setHealth();
+	protected abstract void setHealth(int newHealth);
 	
-	protected abstract void setDamageRange();
+	protected abstract void setDamageRange(int[] newDamageRange);
+	
+	protected abstract int[] getDamageRange();
+	
+	protected abstract int getHealth();
+	
+	protected abstract double getBlockChance();
+	
+	protected abstract void setBlockChance(double newBlockChance);
+	
+	public int getTeam(){
+		return team;
+	}
 
 	private boolean collisionDetector(Xform node, Node otherShape) {
 		if (otherShape != node) {

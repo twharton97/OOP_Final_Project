@@ -1,11 +1,10 @@
-package Robots;
+package robots;
 
 import java.util.ArrayList;
 import java.util.Random;
-
-import Game.Xform;
-import Game.deathWatcher;
-import Game.killable;
+import game.Xform;
+import game.deathWatcher;
+import game.killable;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
@@ -16,6 +15,13 @@ import javafx.scene.shape.Cylinder;
 import javafx.scene.shape.Sphere;
 import javafx.util.Duration;
 
+/**
+ * This class is used to piece together a robot through seperate nodes and/or shapes
+ * This way you can manipulate each individual piece as they are all attached to the large 
+ * robot group
+ * @author Tyler
+ *
+ */
 public abstract class Component extends Xform implements killable {
 	protected int health;
 	protected int armor;
@@ -29,7 +35,17 @@ public abstract class Component extends Xform implements killable {
 	private Timeline animateExplosion;
 	private KeyFrame explosionKey;
 	private int animationTick = -100;
-
+	
+	/**
+	 * This constructor adds all deathWatchers to the components and initializes the 
+	 * collection of pieces within the Component
+	 * 
+	 * @param world is used to add the game world or engine to the list of classes
+	 * to be notified when this Component perishes
+	 * 
+	 * @param robot is used to add the parent unit to the list of classes to be
+	 * notified when this Component perishes
+	 */
 	protected Component(deathWatcher world, deathWatcher robot) {
 		recPieces = new ArrayList<Box>();
 		spherePieces = new ArrayList<Sphere>();
@@ -50,7 +66,12 @@ public abstract class Component extends Xform implements killable {
 	public ArrayList<Cylinder> getCylinderPieces() {
 		return cylinderPieces;
 	}
-
+	
+	/**
+	 * 
+	 * @return The combined width of all adjacent components within
+	 * the component 
+	 */
 	public double getWidth() {
 		for (Box box : recPieces) {
 			currentWidth = box.getWidth();
@@ -60,7 +81,14 @@ public abstract class Component extends Xform implements killable {
 		}
 		return storedWidth;
 	}
-
+	
+	/**
+	 * This Method is used to color and texture all pieces
+	 * of the component
+	 * 
+	 * @param mat (the Phong Material used to color texture the 
+	 * pieces of this component
+	 */
 	public void coloring(PhongMaterial mat) {
 		for (Box box : recPieces) {
 			box.setMaterial(mat);
@@ -72,7 +100,11 @@ public abstract class Component extends Xform implements killable {
 			cylinder.setMaterial(mat);
 		}
 	}
-
+	
+	/**
+	 * this method causes all pieces of the robot to follow an animation
+	 * route reminiscent of an explosion.
+	 */
 	public void explode() {
 		animateExplosion = new Timeline();
 		animateExplosion.setCycleCount(200);
@@ -81,7 +113,6 @@ public abstract class Component extends Xform implements killable {
 
 			@Override
 			public void handle(ActionEvent event) {
-				System.out.println(animationTick);
 				animationTick++;
 				Random rand = new Random();
 				
@@ -149,7 +180,7 @@ public abstract class Component extends Xform implements killable {
 
 			@Override
 			public void handle(ActionEvent event) {
-				animateExplosion.getKeyFrames().remove(0);
+				animateExplosion.getKeyFrames().removeAll(explosionKey);
 				for(deathWatcher watcher : deathWatchers){
 					watcher.somethingDied(this);
 				}

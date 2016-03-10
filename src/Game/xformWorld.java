@@ -1,4 +1,4 @@
-package Game;
+package game;
 
 import javafx.scene.Group;
 import javafx.scene.transform.Rotate;
