@@ -14,12 +14,15 @@ import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
+import javafx.scene.shape.Box;
+import javafx.scene.transform.Rotate;
 import javafx.util.Duration;
 
 public abstract class Actor extends Xform implements CommandListener, killable{
 
 	protected double speed;
-	protected int health;
+	protected double currentHealth;
+	protected double maxHealth;
 	protected double blockChance;
 	protected Timeline movementTL;
 	protected Timeline collisionTL;
@@ -30,11 +33,16 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 	private Boolean collisionDetected = false;
 	protected int team;
 	protected boolean isMeleeCombatant = false;
-	private int rotation= 90;
+	private int rotation = 90;
+	private int counterRotation = 90;
 	protected int[] damageRange;
+	protected int width;
 	private int combatTick = 0;
 	protected ArrayList<deathWatcher> deathWatchers;
 	protected Random rand = new Random();
+	protected Box healthBarGreen;
+	protected Box healthBarRed;
+	protected double originalHealthBarWidth;
 
 	public Actor(int teamNumber, deathWatcher world) {
 		speed = 15;
@@ -47,6 +55,14 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 		damageRange[1] = 1;
 		deathWatchers = new ArrayList<deathWatcher>();
 		deathWatchers.add(world);
+		PhongMaterial red = new PhongMaterial(Color.RED);
+		PhongMaterial green = new PhongMaterial(Color.LIMEGREEN);
+		healthBarRed = new Box(30,3,3);
+		healthBarRed.setMaterial(red);
+		healthBarGreen = new Box(32,6,6);
+		healthBarGreen.setMaterial(green);
+		healthBarGreen.setRotationAxis(Rotate.Y_AXIS);
+		healthBarRed.setRotationAxis(Rotate.Y_AXIS);
 		
 	}
 	public abstract void explode();
@@ -58,11 +74,11 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 	}
 
 	@Override
-	public void move(double mouseOldX, double mouseOldZ, ArrayList<Node> allNodes) {
-		animateNode(this, allNodes, mouseOldX, mouseOldZ, speed);
+	public void move(double mouseOldX, double mouseOldZ, ArrayList<Actor> allActors) {
+		animateNode(this, allActors, mouseOldX, mouseOldZ, speed);
 	}
 
-	private void animateNode(Xform node, ArrayList<Node> allNodes, double mouseOldX, double mouseOldZ, double speed) {
+	private void animateNode(Actor activeActor, ArrayList<Actor> allActors, double mouseOldX, double mouseOldZ, double speed) {
 
 		double animationMouseX = mouseOldX;
 		double animationMouseZ = mouseOldZ;
@@ -70,63 +86,108 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 		double distanceX = Math.abs(mouseOldX - this.getTranslateX());
 		double distanceZ = Math.abs(mouseOldZ - this.getTranslateZ());
 		this.setRotateY(Math.toDegrees(Math.atan2(mouseOldX - this.getTranslateX(), mouseOldZ - this.getTranslateZ())));
+		activeActor.healthBarGreen.setRotate(0 - Math.toDegrees(Math.atan2(mouseOldX - this.getTranslateX(), mouseOldZ - this.getTranslateZ())));
+		activeActor.healthBarRed.setRotate(0 - Math.toDegrees(Math.atan2(mouseOldX - this.getTranslateX(), mouseOldZ - this.getTranslateZ())));
+		
 
 		int animationCount = (int) ((distanceX + distanceZ) / (speed / 10)) + 1;
 		double dX = distanceX / (double) animationCount;
 		double dZ = distanceZ / (double) animationCount;
 
 		movementTL.setCycleCount(animationCount);
-		collisionTL.setCycleCount(20);
+		collisionTL.setCycleCount(40);
 		movementFrame = new KeyFrame(Duration.seconds(.005), new EventHandler<ActionEvent>() {
 
 			@Override
 			public void handle(ActionEvent event) {
-				if (animationMouseX > node.getTranslateX()) {
-					node.setTranslateX((node.getTranslateX() + dX));
-				} else if (animationMouseX < node.getTranslateX()) {
-					node.setTranslateX(node.getTranslateX() - dX);
+				if (animationMouseX > activeActor.getTranslateX()) {
+					activeActor.setTranslateX((activeActor.getTranslateX() + dX));
+				} else if (animationMouseX < activeActor.getTranslateX()) {
+					activeActor.setTranslateX(activeActor.getTranslateX() - dX);
 				}
-				if (animationMouseZ > node.getTranslateZ()) {
-					node.setTranslateZ((node.getTranslateZ() + dZ));
-				} else if (animationMouseZ < node.getTranslateZ()) {
-					node.setTranslateZ(node.getTranslateZ() - dZ);
+				if (animationMouseZ > activeActor.getTranslateZ()) {
+					activeActor.setTranslateZ((activeActor.getTranslateZ() + dZ));
+				} else if (animationMouseZ < activeActor.getTranslateZ()) {
+					activeActor.setTranslateZ(activeActor.getTranslateZ() - dZ);
 				}
-				for (Node otherShape : allNodes) {
-					if (otherShape != node) {
-						if (collisionDetector(node, otherShape) == true) {
+				for (Actor otherActor : allActors) {
+					if (otherActor != activeActor) {
+						if (collisionDetector(activeActor, otherActor) == true) {
 							collisionDetected = true;
-							System.out.println("collisionDetected turned to True");
-							System.out.println("collision detected");
 							collisionKey = new KeyFrame(Duration.seconds(.005), new EventHandler<ActionEvent>() {
 
 								@Override
 								public void handle(ActionEvent event) {
-
-									if (otherShape.getTranslateZ() > node.getTranslateZ()) {
-										node.setTranslateZ(node.getTranslateZ() - .02);
-										node.setTranslateX((node.getTranslateX() + .2));
-									} else if (otherShape.getTranslateZ() < node.getTranslateZ()) {
-										node.setTranslateX(node.getTranslateX() - .2);
-										node.setTranslateZ(node.getTranslateZ() + .02);
+//									if(activeActor.getTranslateX()<otherActor.getTranslateX()){
+//										activeActor.setTranslateZ(activeActor.getTranslateZ() + Math.abs(activeActor.getTranslateX() - otherActor.getTranslateX())/200);	
+//									}else{
+//										activeActor.setTranslateZ(activeActor.getTranslateZ() - Math.abs(activeActor.getTranslateX() - otherActor.getTranslateX())/200);	
+//									}
+//									if(activeActor.getTranslateZ()<otherActor.getTranslateZ()){
+//										activeActor.setTranslateX(activeActor.getTranslateZ() + Math.abs(activeActor.getTranslateZ() - otherActor.getTranslateZ())/200);	
+//									}else{
+//										activeActor.setTranslateX(activeActor.getTranslateZ() - Math.abs(activeActor.getTranslateZ() - otherActor.getTranslateZ())/200);	
+//									}
+									
+									
+									
+									
+//									if(Math.abs(otherActor.getTranslateZ() - activeActor.getTranslateZ()) <= Math.abs(otherActor.getTranslateZ() - activeActor.getTranslateZ())){
+//										if(activeActor.getTranslateX()>otherActor.getTranslateX()){
+//											activeActor.setTranslateX((activeActor.getTranslateX() - .2));											
+//										}
+//										activeActor.setTranslateX((activeActor.getTranslateX() + .2));
+//									}else{
+//										if(activeActor.getTranslateZ()>otherActor.getTranslateZ()){
+//											activeActor.setTranslateZ((activeActor.getTranslateZ() - .2));
+//										}
+//										activeActor.setTranslateZ((activeActor.getTranslateZ() + .2));
+//									}
+									
+									
+									
+//									if (otherActor.getTranslateZ() > activeActor.getTranslateZ()) {
+//										activeActor.setTranslateZ(activeActor.getTranslateZ() - .1);
+////										activeActor.setTranslateX((activeActor.getTranslateX() - .2));
+//									} else if (otherActor.getTranslateZ() < activeActor.getTranslateZ()) {
+////										activeActor.setTranslateX(activeActor.getTranslateX() - .2);
+//										activeActor.setTranslateZ(activeActor.getTranslateZ() + .1);
+//									}else if (otherActor.getTranslateX() > activeActor.getTranslateX()) {
+////										activeActor.setTranslateZ((activeActor.getTranslateZ() + .2));
+//										activeActor.setTranslateX(activeActor.getTranslateX() - .1);
+//
+//									} else if (otherActor.getTranslateX() < activeActor.getTranslateX()) {
+////										activeActor.setTranslateZ(activeActor.getTranslateZ() - .2);
+//										activeActor.setTranslateX(activeActor.getTranslateX() + .1);
+//
+//									}
+//									double totalDistance = (Math.abs(activeActor.getTranslateX()-otherActor.getTranslateX()) + Math.abs(activeActor.getTranslateZ()-otherActor.getTranslateZ()));
+//									activeActor.setTranslateX(1d * (totalDistance/Math.abs(activeActor.getTranslateX()-otherActor.getTranslateX())));
+//									activeActor.setTranslateZ(1d * (totalDistance/Math.abs(activeActor.getTranslateZ()-otherActor.getTranslateZ())));
+									
+									
+									
+									if (Math.abs(otherActor.getTranslateZ()-mouseOldZ) >= Math.abs(otherActor.getTranslateX()-mouseOldX)){
+										if(activeActor.getTranslateX() < otherActor.getTranslateX()){
+											activeActor.setTranslateX(activeActor.getTranslateX()-1);											
+										}else{
+											activeActor.setTranslateX(activeActor.getTranslateX()+1);
+										}
+									}else {
+										if(activeActor.getTranslateZ() < otherActor.getTranslateZ()){
+											activeActor.setTranslateZ(activeActor.getTranslateZ()-1);											
+										}else{
+											activeActor.setTranslateZ(activeActor.getTranslateZ()+1);
+										}
 									}
-
-									if (otherShape.getTranslateX() > node.getTranslateX()) {
-										node.setTranslateZ((node.getTranslateZ() + .2));
-										node.setTranslateX(node.getTranslateX() - .02);
-
-									} else if (otherShape.getTranslateX() < node.getTranslateX()) {
-										node.setTranslateZ(node.getTranslateZ() - .2);
-										node.setTranslateX(node.getTranslateX() + .02);
-
-									}
+									
 								}
 
 							});
 							if (collisionDetected == true) {
-								handleCollision(mouseOldX, mouseOldZ, allNodes, node, otherShape);
+								handleCollision(mouseOldX, mouseOldZ, allActors, activeActor, otherActor);
 							}
 						}else{
-//							System.out.println("collisionDetected turned to false");
 							collisionDetected = false;
 						}
 
@@ -143,8 +204,8 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 		}
 		movementTL.getKeyFrames().add(movementFrame);
 		movementTL.play();
-		for (Node otherShape : allNodes) {
-			if (otherShape != node) {
+		for (Node otherShape : allActors) {
+			if (otherShape != activeActor) {
 			
 			}
 		}
@@ -167,14 +228,13 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 
 	}
 
-	private void handleCollision(double mouseOldX, double mouseOldZ, ArrayList<Node> allNodes, Node node, Node otherShape) {
-		System.out.println("collision handled");
+	private void handleCollision(double mouseOldX, double mouseOldZ, ArrayList<Actor> allActors, Actor activeActor, Actor otherActor) {
 		if (!movementTL.getKeyFrames().isEmpty()) {
 			movementTL.stop();
 			movementTL.getKeyFrames().remove(0);
 		}
-		if(checkForMeleeCombat(node, (Robot) otherShape)){
-			handleMeleeCombat((Robot) node, (Robot) otherShape);
+		if(checkForMeleeCombat(activeActor, otherActor)){
+			handleMeleeCombat(activeActor, otherActor);
 		}else{
 			collisionTL.getKeyFrames().add(collisionKey);
 			collisionTL.play();
@@ -182,9 +242,9 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 		
 				@Override
 				public void handle(ActionEvent event) {
-					if (!(Math.abs(mouseOldX - node.getTranslateX()) < 25)
-							&& !(Math.abs(mouseOldX - otherShape.getTranslateX()) < 25)) {
-						move(mouseOldX, mouseOldZ, allNodes);
+					if (!(Math.abs(mouseOldX - activeActor.getTranslateX()) < 25)
+							&& !(Math.abs(mouseOldX - otherActor.getTranslateX()) < 25)) {
+						move(mouseOldX, mouseOldZ, allActors);
 						collisionTL.getKeyFrames().remove(0);
 					}
 				}
@@ -192,7 +252,7 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 		}
 	}
 
-	private void handleMeleeCombat(Actor node, Actor otherShape) {
+	private void handleMeleeCombat(Actor activeActor, Actor otherActor) {
 //		for(int i = 0; i < 100; i ++){
 //			if ( i % 10 == 0){
 //				System.out.println("combat stuff");
@@ -204,35 +264,40 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 
 			@Override
 			public void handle(ActionEvent event) {
-				node.setRotateY((rotation+=3)%360);
-				otherShape.setRotateY((rotation+=3)%360);
+				
+				activeActor.setRotateY((rotation+=3)%360);
+				otherActor.setRotateY((rotation)%360);
+				activeActor.healthBarGreen.setRotate((counterRotation-=3)%360);
+				activeActor.healthBarRed.setRotate((counterRotation)%360);
+				otherActor.healthBarGreen.setRotate((counterRotation)%360);
+				otherActor.healthBarRed.setRotate((counterRotation)%360);
 				combatTick++;
 				
 				if(combatTick % 70 == 0){
-					if(((rand.nextInt(100)+1)<=rand.nextInt((int)otherShape.getBlockChance()))){
-						System.out.println("otherShape blocked");	
+					if(((rand.nextInt(100)+1)<=rand.nextInt((int)otherActor.getBlockChance()))){
+						System.out.println("otherActor blocked");	
 					}else{
-						otherShape.setHealth(otherShape.getHealth()-(rand.nextInt(node.getDamageRange()[1]-node.getDamageRange()[0]+1)+node.getDamageRange()[0]));
-						System.out.println("otherSHape health is now " + otherShape.getHealth());
+						otherActor.setHealth(otherActor.getHealth()-(rand.nextInt(activeActor.getDamageRange()[1]-activeActor.getDamageRange()[0]+1)+activeActor.getDamageRange()[0]));
+						System.out.println("otherActor health is now " + otherActor.getHealth());
 					}
-					if(((rand.nextInt(100)+1)<=rand.nextInt((int)node.getBlockChance()))){
-						System.out.println("node blocked");
+					if(((rand.nextInt(100)+1)<=rand.nextInt((int)activeActor.getBlockChance()))){
+						System.out.println("activeActor blocked");
 					}else{
-						node.setHealth(node.getHealth()-(rand.nextInt(otherShape.getDamageRange()[1]-otherShape.getDamageRange()[0]+1)+otherShape.getDamageRange()[0]));
-						System.out.println("Node health is now " + node.getHealth());
+						activeActor.setHealth(activeActor.getHealth()-(rand.nextInt(otherActor.getDamageRange()[1]-otherActor.getDamageRange()[0]+1)+otherActor.getDamageRange()[0]));
+						System.out.println("activeActor health is now " + activeActor.getHealth());
 					}
 					
 				}
 				
-				if(node.getHealth() <= 0){
+				if(activeActor.getHealth() <= 0){
 					combatTL.stop();
 					combatTL.getKeyFrames().removeAll(combatKey);
-					node.explode();
+					activeActor.explode();
 				}
-				if( otherShape.getHealth() <= 0){
+				if( otherActor.getHealth() <= 0){
 					combatTL.stop();
 					combatTL.getKeyFrames().removeAll(combatKey);
-					otherShape.explode();
+					otherActor.explode();
 					
 				}
 				
@@ -263,28 +328,34 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 	@Override
 	public abstract void deSelected();
 	
-	protected abstract void setHealth(int newHealth);
+	protected void setHealth(double newHealth){
+		currentHealth = newHealth;
+		healthBarGreen.setWidth(originalHealthBarWidth * (currentHealth/maxHealth));
+//		healthBarGreen.setTranslateX(0 - Math.abs(((originalHealthBarWidth/2)-((originalHealthBarWidth/2)*(currentHealth/maxHealth)))));
+	}
 	
-	protected abstract void setDamageRange(int[] newDamageRange);
+	public abstract void setDamageRange(int[] newDamageRange);
 	
 	protected abstract int[] getDamageRange();
 	
-	protected abstract int getHealth();
+	protected abstract double getHealth();
 	
-	protected abstract double getBlockChance();
+	public abstract double getBlockChance();
 	
-	protected abstract void setBlockChance(double newBlockChance);
+	public abstract void setBlockChance(double newBlockChance);
 	
 	public int getTeam(){
 		return team;
 	}
 
-	private boolean collisionDetector(Xform node, Node otherShape) {
+	public int getWidth(){
+		return width;
+	}
+	
+	private boolean collisionDetector(Actor node, Actor otherShape) {
 		if (otherShape != node) {
-			if (node.getTranslateX() >= otherShape.getTranslateX() - 25
-					&& node.getTranslateX() <= otherShape.getTranslateX() + 25) {
-				if (node.getTranslateZ() >= otherShape.getTranslateZ() - 25
-						&& node.getTranslateZ() <= otherShape.getTranslateZ() + 25) {
+			if (Math.abs(node.getTranslateX() - otherShape.getTranslateX()) < node.getWidth() + otherShape.getWidth() + 2) {
+				if (Math.abs(node.getTranslateZ() - otherShape.getTranslateZ()) < node.getWidth() + otherShape.getWidth() +2) {
 					return true;
 				} else {
 					return false;
@@ -297,5 +368,11 @@ public abstract class Actor extends Xform implements CommandListener, killable{
 		}
 
 	}
-
+	
 }
+
+//
+//if (node.getTranslateX() >= otherShape.getTranslateX() - node.getWidth()
+//&& node.getTranslateX() <= otherShape.getTranslateX() + node.getWidth()) {
+//if (node.getTranslateZ() >= otherShape.getTranslateZ() - node.getWidth()
+//	&& node.getTranslateZ() <= otherShape.getTranslateZ() + node.getWidth()) {

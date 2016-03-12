@@ -71,10 +71,26 @@ public class Robot extends Actor implements deathWatcher {
 		selectedCircle.setMaterial(PM);
 		coloring(mat);
 
-		health = 150;
+		currentHealth = 150;
+		maxHealth = 150;
 		damageRange[0] = 10;
 		damageRange[1] = 20;
 		blockChance = 15;
+		width = 25;
+		
+
+		healthBarGreen.setWidth(maxHealth/3);
+		healthBarRed.setWidth(maxHealth/3);
+		healthBarRed.setTranslateY(-100);
+		healthBarGreen.setTranslateY(-100);
+		this.getChildren().add(healthBarRed);
+		this.getChildren().add(healthBarGreen);
+		originalHealthBarWidth = healthBarGreen.getWidth();
+		healthBarGreen.setTranslateX(0);
+
+		healthBarGreen.setRotate(0 - this.getRotate());
+		healthBarRed.setRotate(0 - this.getRotate());
+		
 
 	}
 
@@ -90,22 +106,11 @@ public class Robot extends Actor implements deathWatcher {
 		if (this.getChildren().lastIndexOf(selectedCircle) != -1) {
 			this.getChildren().remove(selectedCircle);
 		}
-
 	}
 
-	public double getWidth() {
-		return leftArm.getWidth() + rightArm.getWidth() + torso.getWidth();
-	}
 
 	@Override
-	protected void setHealth(int newHealth) {
-
-		health = newHealth;
-
-	}
-
-	@Override
-	protected void setDamageRange(int[] newDamageRange) {
+	public void setDamageRange(int[] newDamageRange) {
 		damageRange[0] = newDamageRange[0];
 		damageRange[1] = newDamageRange[1];
 
@@ -114,7 +119,7 @@ public class Robot extends Actor implements deathWatcher {
 	@Override
 	public void explode() {
 		for (int i = 0; i < this.getChildren().size(); i++) {
-			if (!this.getChildren().get(i).equals(selectedCircle)) {
+			if (!this.getChildren().get(i).equals(selectedCircle) && !this.getChildren().get(i).equals(healthBarGreen) && !this.getChildren().get(i).equals(healthBarRed)) {
 				((killable) this.getChildren().get(i)).explode();
 			}
 		}
@@ -134,18 +139,18 @@ public class Robot extends Actor implements deathWatcher {
 	}
 
 	@Override
-	protected int getHealth() {
-		return health;
+	protected double getHealth() {
+		return currentHealth;
 
 	}
 
 	@Override
-	protected double getBlockChance() {
+	public double getBlockChance() {
 		return blockChance;
 	}
 
 	@Override
-	protected void setBlockChance(double newBlockChance) {
+	public void setBlockChance(double newBlockChance) {
 		blockChance = newBlockChance;
 
 	}

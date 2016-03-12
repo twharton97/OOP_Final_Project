@@ -31,21 +31,31 @@ public class CommandCenter extends Actor implements deathWatcher {
 		for (buildingBlock block : buildingBlocks){
 			this.getChildren().add(block);
 		}
-		
+		damageRange[0] = 0;
+		damageRange[1] = 0;
 		selectedCircle = new Cylinder(75,2);
 		selectedCircle.setTranslateY(-2);
 		selectedCircle.setMaterial(PM);
 		coloring(mat);
 		
+		width = 75;
+		
+		currentHealth = 1000;
+		maxHealth = 1000;
+		healthBarGreen.setWidth(maxHealth/3);
+		healthBarRed.setWidth(maxHealth/3);
+		healthBarRed.setTranslateY(-100);
+		healthBarGreen.setTranslateY(-100);
+		this.getChildren().add(healthBarRed);
+		this.getChildren().add(healthBarGreen);
+		originalHealthBarWidth = healthBarGreen.getWidth();
+		healthBarGreen.setTranslateX(0);
 	}
 
 	@Override
 	public void isSelected() {
-		System.out.println("base deselecting");
 		deSelected();
-		System.out.println("base adding selection circle");
 		this.getChildren().add(selectedCircle);
-		System.out.println("circle added");
 
 	}
 
@@ -54,17 +64,6 @@ public class CommandCenter extends Actor implements deathWatcher {
 		if (this.getChildren().lastIndexOf(selectedCircle) != -1) {
 			this.getChildren().remove(selectedCircle);
 		}
-
-	}
-
-	public double getWidth() {
-		return 0;
-	}
-
-	@Override
-	protected void setHealth(int newHealth) {
-
-		health = newHealth;
 
 	}
 
@@ -85,13 +84,13 @@ public class CommandCenter extends Actor implements deathWatcher {
 	}
 
 	@Override
-	protected int getHealth() {
-		return health;
+	protected double getHealth() {
+		return currentHealth;
 
 	}
 
 	@Override
-	protected void setDamageRange(int[] newDamageRange) {
+	public void setDamageRange(int[] newDamageRange) {
 		// TODO Auto-generated method stub
 
 	}
@@ -99,23 +98,23 @@ public class CommandCenter extends Actor implements deathWatcher {
 	@Override
 	protected int[] getDamageRange() {
 		// TODO Auto-generated method stub
-		return null;
+		return damageRange;
 	}
 
 	@Override
-	protected double getBlockChance() {
+	public double getBlockChance() {
 		// TODO Auto-generated method stub
-		return 0;
+		return 5;
 	}
 
 	@Override
-	protected void setBlockChance(double newBlockChance) {
+	public void setBlockChance(double newBlockChance) {
 		// TODO Auto-generated method stub
 
 	}
 	
 	@Override
-	public void move(double mouseOldX, double mouseOldZ, ArrayList<Node> allNodes){
+	public void move(double mouseOldX, double mouseOldZ, ArrayList<Actor> allActors){
 		
 	}
 }

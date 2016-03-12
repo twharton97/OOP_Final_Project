@@ -54,7 +54,7 @@ public class World extends Application implements deathWatcher {
 	final XformWorld world = new XformWorld();
 	final PerspectiveCamera camera = new PerspectiveCamera(true);
 	final XformCamera cameraXform = new XformCamera();
-	private ArrayList<Node> allNodes;
+	private ArrayList<Actor> allActors;
 	private ArrayList<Robot> robots;
 	private ArrayList<Actor> buildings;
 	private static final double CAMERA_INITIAL_DISTANCE = -2000;
@@ -76,12 +76,12 @@ public class World extends Application implements deathWatcher {
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		System.out.println("hi");
-		allNodes = new ArrayList<Node>();
+		allActors = new ArrayList<Actor>();
 		root.getChildren().add(world);
 		root.setDepthTest(DepthTest.ENABLE);
 		buildCamera();
 		buildFloor();
-		subScene = new SubScene(root, 1920, 880, true, SceneAntialiasing.BALANCED);
+		subScene = new SubScene(root, 1920, 940, true, SceneAntialiasing.BALANCED);
 		green = new PhongMaterial();
 		green.setDiffuseColor(Color.GREEN);
 		green.setSpecularColor(Color.RED);
@@ -105,7 +105,7 @@ public class World extends Application implements deathWatcher {
 
 		// makeCommandCenter(red, 1);
 
-		world.getChildren().addAll(allNodes);
+		world.getChildren().addAll(allActors);
 
 		makeCommandCenter(red, 1);
 		makeCommandCenter(blue, 2);
@@ -168,21 +168,21 @@ public class World extends Application implements deathWatcher {
 
 		buildings.add(new CommandCenter(mat, team, this));
 		if (team == 1) {
-			buildings.get(buildings.size() - 1).setTranslateX(500);
-			buildings.get(buildings.size() - 1).setTranslateZ(500);
+			buildings.get(buildings.size() - 1).setTranslateX(800);
+			
 		} else {
-			buildings.get(buildings.size() - 1).setTranslateX(-500);
-			buildings.get(buildings.size() - 1).setTranslateZ(-500);
+			buildings.get(buildings.size() - 1).setTranslateX(-800);
+			
 		}
-		allNodes.add(buildings.get(buildings.size() - 1));
+		allActors.add(buildings.get(buildings.size() - 1));
 
-		pane.getChildren().removeAll(allNodes);
+		pane.getChildren().removeAll(allActors);
 
-		pane.getChildren().addAll(allNodes);
+		pane.getChildren().addAll(allActors);
 
-		world.getChildren().removeAll(allNodes);
+		world.getChildren().removeAll(allActors);
 
-		world.getChildren().addAll(allNodes);
+		world.getChildren().addAll(allActors);
 
 	}
 
@@ -190,17 +190,23 @@ public class World extends Application implements deathWatcher {
 		robots.add(new Robot(mat, team, this));
 		for(Actor building : buildings){
 			if(building.getTeam() == robots.get(robots.size() - 1).getTeam()){
-				robots.get(robots.size() - 1).setTranslateX(building.getTranslateX() + rand.nextInt(200)+70);
-				robots.get(robots.size() - 1).setTranslateZ(building.getTranslateZ() + rand.nextInt(200)+70);
+				if(building.getTeam()!=2){
+					robots.get(robots.size() - 1).setTranslateX(building.getTranslateX() + (rand.nextInt(350)+70)*-1);	
+					robots.get(robots.size()-1).setBlockChance(95);
+					robots.get(robots.size()-1).setDamageRange(new int[]{5,10});
+				}else{
+					robots.get(robots.size() - 1).setTranslateX(building.getTranslateX() + rand.nextInt(350)+70);
+				}
+				robots.get(robots.size() - 1).setTranslateZ(building.getTranslateZ() + rand.nextInt(350)-175);
 			}
 		}
 		
-		robots.get(robots.size() - 1).setRotateY(rand.nextInt(361));
-		allNodes.add(robots.get(robots.size() - 1));
-		pane.getChildren().removeAll(allNodes);
-		pane.getChildren().addAll(allNodes);
-		world.getChildren().removeAll(allNodes);
-		world.getChildren().addAll(allNodes);
+		robots.get(robots.size() - 1).setRotateY(0);
+		allActors.add(robots.get(robots.size() - 1));
+		pane.getChildren().removeAll(allActors);
+		pane.getChildren().addAll(allActors);
+		world.getChildren().removeAll(allActors);
+		world.getChildren().addAll(allActors);
 
 	}
 
@@ -283,7 +289,7 @@ public class World extends Application implements deathWatcher {
 				} else if (me.isSecondaryButtonDown()) {
 					if (!commandListeners.isEmpty()) {
 						for (CommandListener listener : commandListeners) {
-							listener.move(robot.getTranslateX(), robot.getTranslateZ(), allNodes);
+							listener.move(robot.getTranslateX(), robot.getTranslateZ(), allActors);
 						}
 					}
 				}
@@ -303,7 +309,7 @@ public class World extends Application implements deathWatcher {
 			}
 			if (me.isSecondaryButtonDown()) {
 				for (CommandListener listener : commandListeners) {
-					listener.move(mouseOldX, mouseOldZ, allNodes);
+					listener.move(mouseOldX, mouseOldZ, allActors);
 				}
 			}
 
@@ -464,7 +470,7 @@ public class World extends Application implements deathWatcher {
 
 	public void somethingDied(Object o) {
 
-		allNodes.remove(o);
+		allActors.remove(o);
 		world.getChildren().remove(o);
 		if (commandListeners.contains(o)) {
 			commandListeners.remove(o);
